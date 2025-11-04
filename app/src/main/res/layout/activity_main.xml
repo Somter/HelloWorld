@@ -1,40 +1,95 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".MainActivity">
+    android:padding="16dp">
 
-<!--    <TextView-->
-<!--        android:layout_width="wrap_content"-->
-<!--        android:layout_height="wrap_content"-->
-<!--        android:text="Hello World!"-->
-<!--        app:layout_constraintBottom_toBottomOf="parent"-->
-<!--        app:layout_constraintEnd_toEndOf="parent"-->
-<!--        app:layout_constraintStart_toStartOf="parent"-->
-<!--        app:layout_constraintTop_toTopOf="parent" />-->
+    <!-- Заголовок -->
+    <TextView
+        android:id="@+id/titleText"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="Хрестики — Нулики"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
 
-<!--    <Button-->
-<!--        android:id="@+id/my_super_button"-->
-<!--        android:layout_width="220dp"-->
-<!--        android:layout_height="62dp"-->
-<!--        android:text="Click me!"-->
-<!--        app:layout_constraintTop_toTopOf="parent"-->
-<!--        app:layout_constraintBottom_toBottomOf="parent"-->
-<!--        app:layout_constraintStart_toStartOf="parent"-->
-<!--        app:layout_constraintEnd_toEndOf="parent"-->
-<!--        android:onClick="increaseWidth" />-->
+    <GridLayout
+        android:id="@+id/grid"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:rowCount="3"
+        android:columnCount="3"
+        android:alignmentMode="alignMargins"
+        android:useDefaultMargins="true"
+        app:layout_constraintTop_toBottomOf="@id/titleText"
+        app:layout_constraintBottom_toTopOf="@+id/resetButton"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="16dp">
+
+        <!-- 9 ImageButtons: ids btn0 .. btn8 -->
+        <ImageButton
+            android:id="@+id/btn0"
+            style="@style/GridCell"
+            android:contentDescription="cell0" />
+
+        <ImageButton
+            android:id="@+id/btn1"
+            style="@style/GridCell"
+            android:contentDescription="cell1" />
+
+        <ImageButton
+            android:id="@+id/btn2"
+            style="@style/GridCell"
+            android:contentDescription="cell2" />
+
+        <ImageButton
+            android:id="@+id/btn3"
+            style="@style/GridCell"
+            android:contentDescription="cell3" />
+
+        <ImageButton
+            android:id="@+id/btn4"
+            style="@style/GridCell"
+            android:contentDescription="cell4" />
+
+        <ImageButton
+            android:id="@+id/btn5"
+            style="@style/GridCell"
+            android:contentDescription="cell5" />
+
+        <ImageButton
+            android:id="@+id/btn6"
+            style="@style/GridCell"
+            android:contentDescription="cell6" />
+
+        <ImageButton
+            android:id="@+id/btn7"
+            style="@style/GridCell"
+            android:contentDescription="cell7" />
+
+        <ImageButton
+            android:id="@+id/btn8"
+            style="@style/GridCell"
+            android:contentDescription="cell8" />
+
+    </GridLayout>
 
     <Button
-        android:id="@+id/songButton"
-        android:layout_width="wrap_content"
+        android:id="@+id/resetButton"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:text="Наступний куплет"
+        android:text="Нова гра"
+        android:textAllCaps="false"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintEnd_toEndOf="parent" />
+
 
 </androidx.constraintlayout.widget.ConstraintLayout>
