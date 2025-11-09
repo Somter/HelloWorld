@@ -1,148 +1,128 @@
 package com.example.helloworld;
 
-import android.os.AsyncTask;
 import android.os.Bundle;
-import android.view.LayoutInflater;
 import android.view.View;
-import android.view.ViewGroup;
-import android.widget.Button;
-import android.widget.ImageButton;
+import android.widget.AdapterView;
+import android.widget.ImageView;
+import android.widget.ListView;
+import android.widget.SimpleAdapter;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
-public class MainActivity extends AppCompatActivity implements View.OnClickListener {
+public class MainActivity extends AppCompatActivity {
 
-    // 0 = empty, 1 = X, 2 = O
-    private int[] board = new int[9];
-    private boolean xTurn = true; // хід X спочатку
-    private ImageButton[] cells = new ImageButton[9];
-    private Button resetButton;
+    private static final String KEY_AVATAR = "avatar";
+    private static final String KEY_NAME = "name";
+    private static final String KEY_TIME = "time";
+    private static final String KEY_MESSAGE = "message";
+    private static final String KEY_UNREAD = "unread";
+
+    private ListView listViewChats;
+    private ArrayList<HashMap<String, Object>> chatList;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // Ініціалізація кнопок
-        cells[0] = findViewById(R.id.btn0);
-        cells[1] = findViewById(R.id.btn1);
-        cells[2] = findViewById(R.id.btn2);
-        cells[3] = findViewById(R.id.btn3);
-        cells[4] = findViewById(R.id.btn4);
-        cells[5] = findViewById(R.id.btn5);
-        cells[6] = findViewById(R.id.btn6);
-        cells[7] = findViewById(R.id.btn7);
-        cells[8] = findViewById(R.id.btn8);
+        listViewChats = findViewById(R.id.listViewChats);
 
-        for (int i = 0; i < 9; i++) {
-            cells[i].setOnClickListener(this);
-            // Початково чисті
-            board[i] = 0;
-            cells[i].setImageDrawable(null);
-            cells[i].setEnabled(true);
-        }
+        chatList = new ArrayList<>();
+        populateChatList();
 
-        resetButton = findViewById(R.id.resetButton);
-        resetButton.setOnClickListener(v -> resetGame());
-    }
+        String[] from = {KEY_AVATAR, KEY_NAME, KEY_TIME, KEY_MESSAGE, KEY_UNREAD};
+        int[] to = {R.id.iv_avatar, R.id.tv_name, R.id.tv_time, R.id.tv_message_preview, R.id.tv_unread_count};
 
-    @Override
-    public void onClick(View v) {
-        int index = -1;
-        for (int i = 0; i < 9; i++) {
-            if (v.getId() == cells[i].getId()) {
-                index = i;
-                break;
+        SimpleAdapter adapter = new SimpleAdapter(
+                this,
+                chatList,
+                R.layout.chat_item,
+                from,
+                to
+        );
+
+        adapter.setViewBinder(new MyViewBinder());
+
+        listViewChats.setAdapter(adapter);
+
+        listViewChats.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                HashMap<String, Object> chat = chatList.get(position);
+                String name = (String) chat.get(KEY_NAME);
+
+                Toast.makeText(MainActivity.this, "Відкриття чату з " + name, Toast.LENGTH_SHORT).show();
             }
-        }
-        if (index == -1) return;
-
-        if (board[index] != 0) {
-            Toast.makeText(this, "Ця клітина вже зайнята", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        if (xTurn) {
-            // X
-            cells[index].setImageResource(R.drawable.ic_cross);
-            board[index] = 1;
-        } else {
-            // O
-            cells[index].setImageResource(R.drawable.ic_circle);
-            board[index] = 2;
-        }
-
-        cells[index].setEnabled(false);
-
-        int winner = checkWinner();
-        if (winner != 0) {
-            String who = (winner == 1) ? "Хрестики" : "Нулики";
-            Toast.makeText(this, who + " перемогли!", Toast.LENGTH_LONG).show();
-            disableAll();
-            return;
-        } else if (isBoardFull()) {
-            Toast.makeText(this, "Нічия!", Toast.LENGTH_LONG).show();
-            return;
-        }
-
-        xTurn = !xTurn;
+        });
     }
 
-    private void resetGame() {
-        for (int i = 0; i < 9; i++) {
-            board[i] = 0;
-            cells[i].setImageDrawable(null);
-            cells[i].setEnabled(true);
-        }
-        xTurn = true;
-        Toast.makeText(this, "Нова гра", Toast.LENGTH_SHORT).show();
+    private void populateChatList() {
+        HashMap<String, Object> chat1 = new HashMap<>();
+        chat1.put(KEY_AVATAR, android.R.drawable.ic_dialog_info);
+        chat1.put(KEY_NAME, "Олена Коваленко");
+        chat1.put(KEY_TIME, "14:20");
+        chat1.put(KEY_MESSAGE, "Привіт! Як справи?");
+        chat1.put(KEY_UNREAD, 3);
+        chatList.add(chat1);
+
+        HashMap<String, Object> chat2 = new HashMap<>();
+        chat2.put(KEY_AVATAR, android.R.drawable.ic_dialog_map);
+        chat2.put(KEY_NAME, "Work Chat");
+        chat2.put(KEY_TIME, "13:05");
+        chat2.put(KEY_MESSAGE, "Дедлайн сьогодні о 18:00!");
+        chat2.put(KEY_UNREAD, 0);
+        chatList.add(chat2);
+
+        HashMap<String, Object> chat3 = new HashMap<>();
+        chat3.put(KEY_AVATAR, android.R.drawable.ic_dialog_email);
+        chat3.put(KEY_NAME, "Мама");
+        chat3.put(KEY_TIME, "12:15");
+        chat3.put(KEY_MESSAGE, "Не забудь купити хліб.");
+        chat3.put(KEY_UNREAD, 1);
+        chatList.add(chat3);
+
+        HashMap<String, Object> chat4 = new HashMap<>();
+        chat4.put(KEY_AVATAR, android.R.drawable.ic_dialog_dialer);
+        chat4.put(KEY_NAME, "Андрій (Доставка)");
+        chat4.put(KEY_TIME, "Вчора");
+        chat4.put(KEY_MESSAGE, "Буду у вас за 10 хвилин.");
+        chat4.put(KEY_UNREAD, 0);
+        chatList.add(chat4);
+
+        HashMap<String, Object> chat5 = new HashMap<>();
+        chat5.put(KEY_AVATAR, android.R.drawable.ic_menu_myplaces);
+        chat5.put(KEY_NAME, "Друзі 🚀");
+        chat5.put(KEY_TIME, "Вчора");
+        chat5.put(KEY_MESSAGE, "Макс: Поїхали на вихідних на природу?");
+        chat5.put(KEY_UNREAD, 12);
+        chatList.add(chat5);
     }
 
-    private void disableAll() {
-        for (ImageButton b : cells) {
-            b.setEnabled(false);
-        }
-    }
+    private class MyViewBinder implements SimpleAdapter.ViewBinder {
+        @Override
+        public boolean setViewValue(View view, Object data, String textRepresentation) {
 
-    private boolean isBoardFull() {
-        for (int i = 0; i < 9; i++) {
-            if (board[i] == 0) return false;
-        }
-        return true;
-    }
+            if (view.getId() == R.id.tv_unread_count) {
+                TextView unreadCountView = (TextView) view;
+                int unreadCount = (Integer) data;
 
-    private int checkWinner() {
-        int[][] lines = {
-                {0,1,2}, {3,4,5}, {6,7,8},
-                {0,3,6}, {1,4,7}, {2,5,8},
-                {0,4,8}, {2,4,6}
-        };
-        for (int[] l : lines) {
-            if (board[l[0]] != 0 &&
-                    board[l[0]] == board[l[1]] &&
-                    board[l[1]] == board[l[2]]) {
-                return board[l[0]];
+                if (unreadCount > 0) {
+                    unreadCountView.setText(String.valueOf(unreadCount));
+                    unreadCountView.setVisibility(View.VISIBLE);
+                } else {
+                    unreadCountView.setVisibility(View.GONE);
+                }
+                return true;
             }
-        }
-        return 0; // ніхто
-    }
 
+            return false;
+        }
+    }
 }
