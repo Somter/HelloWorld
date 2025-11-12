@@ -1,128 +1,162 @@
 package com.example.helloworld;
 
+import android.content.ActivityNotFoundException;
+import android.content.Intent;
+import android.content.SharedPreferences;
+import android.net.Uri;
 import android.os.Bundle;
-import android.view.View;
-import android.widget.AdapterView;
-import android.widget.ImageView;
-import android.widget.ListView;
-import android.widget.SimpleAdapter;
-import android.widget.TextView;
+import android.view.Gravity;
+import android.widget.EditText;
+import android.widget.LinearLayout;
+import android.widget.RatingBar;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 public class MainActivity extends AppCompatActivity {
 
-    private static final String KEY_AVATAR = "avatar";
-    private static final String KEY_NAME = "name";
-    private static final String KEY_TIME = "time";
-    private static final String KEY_MESSAGE = "message";
-    private static final String KEY_UNREAD = "unread";
+    // !!! ИЗМЕНЕНИЕ 1: Я изменил имя файла настроек на "TestPrefs",
+    // чтобы гарантированно стереть старые данные о 100 запусках.
+    private static final String PREFS_NAME = "TestPrefs";
 
-    private ListView listViewChats;
-    private ArrayList<HashMap<String, Object>> chatList;
+    private static final String PREF_OPEN_COUNT = "OpenCount";
+    private static final String PREF_IS_RATED = "IsRated";
+
+    // !!! ИЗМЕНЕНИЕ 2: Поставил 1 вместо 10, чтобы вы увидели диалог СРАЗУ при запуске.
+    // Когда все проверите, поменяйте обратно на 10.
+    private static final int TARGET_OPEN_COUNT = 1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        listViewChats = findViewById(R.id.listViewChats);
+        checkAppStartCount();
+    }
 
-        chatList = new ArrayList<>();
-        populateChatList();
+    private void checkAppStartCount() {
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
 
-        String[] from = {KEY_AVATAR, KEY_NAME, KEY_TIME, KEY_MESSAGE, KEY_UNREAD};
-        int[] to = {R.id.iv_avatar, R.id.tv_name, R.id.tv_time, R.id.tv_message_preview, R.id.tv_unread_count};
+        // Считываем данные
+        boolean isRated = prefs.getBoolean(PREF_IS_RATED, false);
+        int openCount = prefs.getInt(PREF_OPEN_COUNT, 0) + 1;
 
-        SimpleAdapter adapter = new SimpleAdapter(
-                this,
-                chatList,
-                R.layout.chat_item,
-                from,
-                to
+        // Сохраняем новый счетчик
+        prefs.edit().putInt(PREF_OPEN_COUNT, openCount).apply();
+
+        // !!! ИЗМЕНЕНИЕ 3: Выводим сообщение на экран, чтобы вы видели, что код работает
+        Toast.makeText(this, "Запуск номер: " + openCount, Toast.LENGTH_SHORT).show();
+
+        if (isRated) {
+            Toast.makeText(this, "Приложение уже оценено ранее", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        // Проверка: если запусков больше или равно цели
+        if (openCount >= TARGET_OPEN_COUNT) {
+            showRatingDialog();
+        }
+    }
+
+    private void showRatingDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Оцініть наш додаток");
+        builder.setMessage("Нам важлива ваша думка! Будь ласка, поставте оцінку.");
+
+        LinearLayout linearLayout = new LinearLayout(this);
+        linearLayout.setOrientation(LinearLayout.VERTICAL);
+        linearLayout.setGravity(Gravity.CENTER);
+        linearLayout.setPadding(50, 50, 50, 50);
+
+        final RatingBar ratingBar = new RatingBar(this);
+        ratingBar.setNumStars(5);
+        ratingBar.setStepSize(1.0f);
+
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
         );
+        ratingBar.setLayoutParams(params);
 
-        adapter.setViewBinder(new MyViewBinder());
+        linearLayout.addView(ratingBar);
+        builder.setView(linearLayout);
 
-        listViewChats.setAdapter(adapter);
+        builder.setPositiveButton("Готово", (dialog, which) -> {
+            float rating = ratingBar.getRating();
 
-        listViewChats.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                HashMap<String, Object> chat = chatList.get(position);
-                String name = (String) chat.get(KEY_NAME);
+            if (rating == 0) {
+                Toast.makeText(MainActivity.this, "Ви не обрали оцінку", Toast.LENGTH_SHORT).show();
+                return;
+            }
 
-                Toast.makeText(MainActivity.this, "Відкриття чату з " + name, Toast.LENGTH_SHORT).show();
+            markAsRated(); // Блокируем показы в будущем
+
+            if (rating >= 4) {
+                showPlayMarketDialog();
+            } else {
+                showFeedbackDialog();
             }
         });
+
+        builder.setNegativeButton("Пізніше", (dialog, which) -> {
+            // Если нажали "Позже", сбрасываем счетчик на 0, чтобы диалог появился снова
+            resetOpenCount();
+            dialog.dismiss();
+        });
+
+        builder.setCancelable(false);
+        builder.show();
     }
 
-    private void populateChatList() {
-        HashMap<String, Object> chat1 = new HashMap<>();
-        chat1.put(KEY_AVATAR, android.R.drawable.ic_dialog_info);
-        chat1.put(KEY_NAME, "Олена Коваленко");
-        chat1.put(KEY_TIME, "14:20");
-        chat1.put(KEY_MESSAGE, "Привіт! Як справи?");
-        chat1.put(KEY_UNREAD, 3);
-        chatList.add(chat1);
+    private void showFeedbackDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Що пішло не так?");
+        builder.setMessage("Розкажіть, як ми можемо покращити додаток.");
 
-        HashMap<String, Object> chat2 = new HashMap<>();
-        chat2.put(KEY_AVATAR, android.R.drawable.ic_dialog_map);
-        chat2.put(KEY_NAME, "Work Chat");
-        chat2.put(KEY_TIME, "13:05");
-        chat2.put(KEY_MESSAGE, "Дедлайн сьогодні о 18:00!");
-        chat2.put(KEY_UNREAD, 0);
-        chatList.add(chat2);
+        final EditText input = new EditText(this);
+        input.setHint("Введіть ваш відгук тут...");
 
-        HashMap<String, Object> chat3 = new HashMap<>();
-        chat3.put(KEY_AVATAR, android.R.drawable.ic_dialog_email);
-        chat3.put(KEY_NAME, "Мама");
-        chat3.put(KEY_TIME, "12:15");
-        chat3.put(KEY_MESSAGE, "Не забудь купити хліб.");
-        chat3.put(KEY_UNREAD, 1);
-        chatList.add(chat3);
+        LinearLayout container = new LinearLayout(this);
+        container.setOrientation(LinearLayout.VERTICAL);
+        container.setPadding(50, 20, 50, 20);
+        container.addView(input);
 
-        HashMap<String, Object> chat4 = new HashMap<>();
-        chat4.put(KEY_AVATAR, android.R.drawable.ic_dialog_dialer);
-        chat4.put(KEY_NAME, "Андрій (Доставка)");
-        chat4.put(KEY_TIME, "Вчора");
-        chat4.put(KEY_MESSAGE, "Буду у вас за 10 хвилин.");
-        chat4.put(KEY_UNREAD, 0);
-        chatList.add(chat4);
+        builder.setView(container);
 
-        HashMap<String, Object> chat5 = new HashMap<>();
-        chat5.put(KEY_AVATAR, android.R.drawable.ic_menu_myplaces);
-        chat5.put(KEY_NAME, "Друзі 🚀");
-        chat5.put(KEY_TIME, "Вчора");
-        chat5.put(KEY_MESSAGE, "Макс: Поїхали на вихідних на природу?");
-        chat5.put(KEY_UNREAD, 12);
-        chatList.add(chat5);
+        builder.setPositiveButton("Надіслати", (dialog, which) -> {
+            Toast.makeText(MainActivity.this, "Дякуємо за відгук!", Toast.LENGTH_SHORT).show();
+        });
+
+        builder.setNegativeButton("Скасувати", (dialog, which) -> dialog.dismiss());
+        builder.show();
     }
 
-    private class MyViewBinder implements SimpleAdapter.ViewBinder {
-        @Override
-        public boolean setViewValue(View view, Object data, String textRepresentation) {
+    private void showPlayMarketDialog() {
+        new AlertDialog.Builder(this)
+                .setTitle("Дякуємо за високу оцінку!")
+                .setMessage("Чи не могли б ви залишити відгук у Google Play?")
+                .setPositiveButton("Звісно!", (dialog, which) -> openPlayStore())
+                .setNegativeButton("Ні, дякую", (dialog, which) -> dialog.dismiss())
+                .show();
+    }
 
-            if (view.getId() == R.id.tv_unread_count) {
-                TextView unreadCountView = (TextView) view;
-                int unreadCount = (Integer) data;
-
-                if (unreadCount > 0) {
-                    unreadCountView.setText(String.valueOf(unreadCount));
-                    unreadCountView.setVisibility(View.VISIBLE);
-                } else {
-                    unreadCountView.setVisibility(View.GONE);
-                }
-                return true;
-            }
-
-            return false;
+    private void openPlayStore() {
+        final String appPackageName = getPackageName();
+        try {
+            startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=" + appPackageName)));
+        } catch (ActivityNotFoundException anfe) {
+            startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=" + appPackageName)));
         }
+    }
+
+    private void markAsRated() {
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        prefs.edit().putBoolean(PREF_IS_RATED, true).apply();
+    }
+
+    private void resetOpenCount() {
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        prefs.edit().putInt(PREF_OPEN_COUNT, 0).apply();
     }
 }
